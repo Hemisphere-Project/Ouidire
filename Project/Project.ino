@@ -33,10 +33,16 @@
 
 #define RFID_TX_PIN 19 // RX on the RFID side
 #define RFID_RX_PIN 23 // TX on the RFID side
-int ledPin = 21; // TTGO T8 INTERNAL PIN
+#define LED_PIN  21 // TTGO T8 INTERNAL PIN
 unsigned long Tstart;
 
 #define DEBUG
+#define VBAT_PIN 35
+
+#define LED4_PIN 4
+#define LED3_PIN 12
+#define LED2_PIN 13
+#define LED1_PIN 27
 
 File dir;
 AudioFileSourceSD *source;
@@ -52,7 +58,7 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
     Serial.println("OUI DIRE");
-    pinMode(ledPin, OUTPUT);
+    pinMode(LED_PIN, OUTPUT);
     // SD
     SPI.begin(14, 2, 15, 13); //SCK, MISO, MOSI,SS
     SD.begin(13, SPI);
@@ -62,12 +68,18 @@ void setup() {
     output = new AudioOutputI2S();
     output->SetPinout(26,25,22); // BCLK, WCLK, DOUT
     decoder = new AudioGeneratorWAV();
+    // BATTERY
+    pinMode(LED1_PIN, OUTPUT);
+    pinMode(LED2_PIN, OUTPUT);
+    pinMode(LED3_PIN, OUTPUT);
+    pinMode(LED4_PIN, OUTPUT);
 }
 
 void loop() {
     updateRFID();
     updateLed();
     updateAudio();
+    updateBattery();
 }
 
 void updateRFID(){
@@ -97,15 +109,54 @@ void playAudio(unsigned long cardNumber){
   source->open(("/"+String(cardNumber)+".wav").c_str());
   decoder->begin(source, output);
 
-
 }
 
 
 void updateLed(){
   unsigned long Tnow = millis();
   if(Tnow-Tstart<1000){
-    digitalWrite(ledPin, HIGH);
+    digitalWrite(LED_PIN, HIGH);
   }else{
-    digitalWrite(ledPin, LOW);
+    digitalWrite(LED_PIN, LOW);
   }
+}
+
+void updateBattery(){
+
+  // Charging     4.2
+  // Low          3.4
+  // Empty        3.2
+
+  float read = analogRead(VBAT_PIN);
+  // Serial.print("Analog read: ");
+  // Serial.println(read);
+  float vbat = (read  / 4096) * 3.3 * 2 * 1.05;
+  Serial.print("V Bat: ");
+  Serial.println(vbat);
+
+  if(vbat > 4){                   // Charging
+    digitalWrite(LED1_PIN, HIGH);
+    digitalWrite(LED2_PIN, HIGH);
+    digitalWrite(LED3_PIN, HIGH);
+    digitalWrite(LED4_PIN, HIGH);
+  }
+  if((vbat > 3.4)&&(vbat <= 4)){  // OK
+    digitalWrite(LED1_PIN, LOW);
+    digitalWrite(LED2_PIN, HIGH);
+    digitalWrite(LED3_PIN, HIGH);
+    digitalWrite(LED4_PIN, HIGH);
+  }
+  if((vbat > 3.2)&&(vbat <= 3.4)){  // Low
+    digitalWrite(LED1_PIN, LOW);
+    digitalWrite(LED2_PIN, LOW);
+    digitalWrite(LED3_PIN, HIGH);
+    digitalWrite(LED4_PIN, HIGH);
+  }
+  if(vbat <= 3.2){
+    digitalWrite(LED1_PIN, LOW);  // Empty
+    digitalWrite(LED2_PIN, LOW);
+    digitalWrite(LED3_PIN, LOW);
+    digitalWrite(LED4_PIN, HIGH);
+  }
+
 }
