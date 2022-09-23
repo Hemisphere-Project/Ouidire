@@ -38,10 +38,10 @@ unsigned long Tstart;
 
 #define DEBUG
 #define VBAT_PIN 35
+#define VBUS_PIN 34
 
-#define LED4_PIN 4
-#define LED3_PIN 12
-#define LED2_PIN 13
+#define LED3_PIN 13
+#define LED2_PIN 12
 #define LED1_PIN 27
 
 File dir;
@@ -58,7 +58,6 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
     Serial.println("OUI DIRE");
-    pinMode(LED_PIN, OUTPUT);
     // SD
     SPI.begin(14, 2, 15, 13); //SCK, MISO, MOSI,SS
     SD.begin(13, SPI);
@@ -68,18 +67,18 @@ void setup() {
     output = new AudioOutputI2S();
     output->SetPinout(26,25,22); // BCLK, WCLK, DOUT
     decoder = new AudioGeneratorWAV();
-    // BATTERY
+    // LEDS & INFO
     pinMode(LED1_PIN, OUTPUT);
     pinMode(LED2_PIN, OUTPUT);
     pinMode(LED3_PIN, OUTPUT);
-    pinMode(LED4_PIN, OUTPUT);
+    pinMode(LED_PIN, OUTPUT);
+    pinMode(VBUS_PIN, INPUT);
 }
 
 void loop() {
     updateRFID();
-    updateLed();
     updateAudio();
-    updateBattery();
+    updateLeds();
 }
 
 void updateRFID(){
@@ -97,7 +96,7 @@ void updateAudio(){
     if (!decoder->loop()) decoder->stop();
   } else {
     Serial.printf("WAV done\n");
-    delay(1000);
+    delay(100);
   }
 }
 
@@ -111,52 +110,56 @@ void playAudio(unsigned long cardNumber){
 
 }
 
+void updateLeds(){
 
-void updateLed(){
+  // DETECT RFID
   unsigned long Tnow = millis();
   if(Tnow-Tstart<1000){
     digitalWrite(LED_PIN, HIGH);
   }else{
     digitalWrite(LED_PIN, LOW);
   }
-}
 
-void updateBattery(){
+  // VBUS
+  bool charging = false;
+  float vbus_raw = analogRead(VBUS_PIN);
+  if (vbus_raw > 100){
+    bool charging = true;
+    digitalWrite(LED1_PIN, HIGH);
+  }else{
+    digitalWrite(LED1_PIN, LOW);
+  }
 
+  // BATTERY
   // Charging     4.2
   // Low          3.4
   // Empty        3.2
+  float vbat_raw = analogRead(VBAT_PIN);
+  float vbat = (vbat_raw  / 4096) * 3.3 * 2 * 1.05;
 
-  float read = analogRead(VBAT_PIN);
-  // Serial.print("Analog read: ");
-  // Serial.println(read);
-  float vbat = (read  / 4096) * 3.3 * 2 * 1.05;
-  Serial.print("V Bat: ");
-  Serial.println(vbat);
-
-  if(vbat > 4){                   // Charging
-    digitalWrite(LED1_PIN, HIGH);
+  if(vbat > 3.4){  // OK
     digitalWrite(LED2_PIN, HIGH);
-    digitalWrite(LED3_PIN, HIGH);
-    digitalWrite(LED4_PIN, HIGH);
-  }
-  if((vbat > 3.4)&&(vbat <= 4)){  // OK
-    digitalWrite(LED1_PIN, LOW);
-    digitalWrite(LED2_PIN, HIGH);
-    digitalWrite(LED3_PIN, HIGH);
-    digitalWrite(LED4_PIN, HIGH);
+    digitalWrite(LED3_PIN, LOW);
   }
   if((vbat > 3.2)&&(vbat <= 3.4)){  // Low
-    digitalWrite(LED1_PIN, LOW);
     digitalWrite(LED2_PIN, LOW);
-    digitalWrite(LED3_PIN, HIGH);
-    digitalWrite(LED4_PIN, HIGH);
+    digitalWrite(LED3_PIN, HIGH); /// LOW PEAK WHEN TRIGGERING SOUND ?
   }
-  if(vbat <= 3.2){
-    digitalWrite(LED1_PIN, LOW);  // Empty
-    digitalWrite(LED2_PIN, LOW);
-    digitalWrite(LED3_PIN, LOW);
-    digitalWrite(LED4_PIN, HIGH);
+  // if(vbat <= 3.2){               // Empty
+  //   digitalWrite(LED2_PIN, LOW);
+  //   digitalWrite(LED3_PIN, LOW);
+  // }
+
+
+  // TO DO: Merge into one led
+  // RFID detect - mega rapid blink - 1sec
+  // CHARGING - blink tranquille
+  // > 3.4 && !charging - ON
+  // <= 3.4 - LOW - rapid blink
+  if(Tnow-Tlast<period){
+    digitalWrite(LED_PIN, HIGH);
+  }else{
+    digitalWrite(LED_PIN, LOW);
   }
 
 }
