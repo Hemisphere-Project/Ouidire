@@ -11,7 +11,7 @@
 
 // RFID
 // TX -- 19 (RX On the RFID Side)
-// RX -- 19 (TX On the RFID Side)
+// RX -- 23 (TX On the RFID Side)
 
 // SD
 // SCK --- 14
@@ -151,7 +151,7 @@ void updateLeds(){
   // }
 
 
-  // TO DO: Merge into one led
+  // TO DO: Merge into one led ---> PIN 12
   // RFID detect - mega rapid blink - 1sec
   // CHARGING - blink tranquille
   // > 3.4 && !charging - ON
