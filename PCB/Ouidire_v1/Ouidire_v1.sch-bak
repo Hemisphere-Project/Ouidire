@@ -189,7 +189,7 @@ Seeed RFID
 Wire Wire Line
 	2650 1950 2100 1950
 Connection ~ 2100 1950
-Text Notes 1300 2000 0    50   ~ 0
+Text Notes 1300 1700 0    50   ~ 0
 TO USB - VIN
 $Comp
 L power:GND #PWR0109
@@ -257,12 +257,12 @@ JST LED BTN
 $Comp
 L Connector:Conn_01x01_Female J1
 U 1 1 633711BB
-P 1900 1950
-F 0 "J1" H 1792 1817 50  0000 C CNN
-F 1 "Conn_01x01_Female" H 1928 1885 50  0001 L CNN
-F 2 "Connector_PinSocket_2.54mm:PinSocket_1x01_P2.54mm_Vertical" H 1900 1950 50  0001 C CNN
-F 3 "~" H 1900 1950 50  0001 C CNN
-	1    1900 1950
+P 1900 1650
+F 0 "J1" H 1792 1517 50  0000 C CNN
+F 1 "Conn_01x01_Female" H 1928 1585 50  0001 L CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_1x01_P2.54mm_Vertical" H 1900 1650 50  0001 C CNN
+F 3 "~" H 1900 1650 50  0001 C CNN
+	1    1900 1650
 	-1   0    0    1   
 $EndComp
 $Comp
