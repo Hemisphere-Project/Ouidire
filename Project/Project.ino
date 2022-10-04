@@ -30,19 +30,20 @@
 // Mac: Install USB manager CH9102 (CH34XSER_MAC)
 // Click 'upload', & Turn off & on the power switch on the TTGO while arduino IDE tries to connect (after compiling)
 
-
+//RFID
 #define RFID_TX_PIN 19 // RX on the RFID side
 #define RFID_RX_PIN 23 // TX on the RFID side
-#define LED_PIN  21 // TTGO T8 INTERNAL PIN
-unsigned long Tstart;
+unsigned long Tdetect = 0;
+unsigned long Tblink = 0;
 
 #define DEBUG
 #define VBAT_PIN 35
 #define VBUS_PIN 34
 
-#define LED3_PIN 13
-#define LED2_PIN 12
-#define LED1_PIN 27
+// VISU
+#define LED_PCB  21 // TTGO T8 INTERNAL PIN
+#define LED_PIN  12 // LED BTN
+int ledState = LOW;
 
 File dir;
 AudioFileSourceSD *source;
@@ -68,9 +69,7 @@ void setup() {
     output->SetPinout(26,25,22); // BCLK, WCLK, DOUT
     decoder = new AudioGeneratorWAV();
     // LEDS & INFO
-    pinMode(LED1_PIN, OUTPUT);
-    pinMode(LED2_PIN, OUTPUT);
-    pinMode(LED3_PIN, OUTPUT);
+    pinMode(LED_PCB, OUTPUT);
     pinMode(LED_PIN, OUTPUT);
     pinMode(VBUS_PIN, INPUT);
 }
@@ -86,7 +85,7 @@ void updateRFID(){
       tag = RFID.data();
       Serial.print("RFID card number: ");
       Serial.println(RFID.cardNumber());
-      Tstart = millis();
+      Tdetect = millis();
       playAudio(RFID.cardNumber());
   }
 }
@@ -95,7 +94,7 @@ void updateAudio(){
   if (decoder->isRunning()) {
     if (!decoder->loop()) decoder->stop();
   } else {
-    Serial.printf("WAV done\n");
+    // Serial.printf("WAV done\n");
     delay(100);
   }
 }
@@ -112,54 +111,70 @@ void playAudio(unsigned long cardNumber){
 
 void updateLeds(){
 
-  // DETECT RFID
   unsigned long Tnow = millis();
-  if(Tnow-Tstart<1000){
-    digitalWrite(LED_PIN, HIGH);
-  }else{
-    digitalWrite(LED_PIN, LOW);
-  }
+  String state = "undefined";
+  // detecting      LED OFF
+  // charging       LED BLINK 1sec
+  // normal         LED ON
+  // low_battery    LED BLINK 200ms
 
-  // VBUS
-  bool charging = false;
-  float vbus_raw = analogRead(VBUS_PIN);
-  if (vbus_raw > 100){
-    bool charging = true;
-    digitalWrite(LED1_PIN, HIGH);
-  }else{
-    digitalWrite(LED1_PIN, LOW);
-  }
-
-  // BATTERY
-  // Charging     4.2
-  // Low          3.4
-  // Empty        3.2
+  // BATTERY -- VBAT
   float vbat_raw = analogRead(VBAT_PIN);
   float vbat = (vbat_raw  / 4096) * 3.3 * 2 * 1.05;
 
-  if(vbat > 3.4){  // OK
-    digitalWrite(LED2_PIN, HIGH);
-    digitalWrite(LED3_PIN, LOW);
-  }
-  if((vbat > 3.2)&&(vbat <= 3.4)){  // Low
-    digitalWrite(LED2_PIN, LOW);
-    digitalWrite(LED3_PIN, HIGH); /// LOW PEAK WHEN TRIGGERING SOUND ?
-  }
-  // if(vbat <= 3.2){               // Empty
-  //   digitalWrite(LED2_PIN, LOW);
-  //   digitalWrite(LED3_PIN, LOW);
-  // }
+  // CHARGE USB -- VBUS
+  float vbus_raw = analogRead(VBUS_PIN);
 
 
-  // TO DO: Merge into one led ---> PIN 12
-  // RFID detect - mega rapid blink - 1sec
-  // CHARGING - blink tranquille
-  // > 3.4 && !charging - ON
-  // <= 3.4 - LOW - rapid blink
-  if(Tnow-Tlast<period){
-    digitalWrite(LED_PIN, HIGH);
+  // DEFINE STATES
+  // DETECT RFID
+  if(Tnow-Tdetect<1000){
+    state = "detecting";
   }else{
-    digitalWrite(LED_PIN, LOW);
+    // VBAT
+    if(vbat > 3.4){
+      state = "normal";
+    }
+    if((vbat > 3.2)&&(vbat <= 3.4)){
+      state = "low_battery";
+    }
+    // VBUS
+    if (vbus_raw > 100){
+      state = "charging";
+    }
   }
+
+  // LED
+  if(state=="detecting"){
+    ledState = LOW;
+  }
+  if(state=="normal"){
+    ledState = HIGH;
+  }
+  if(state=="low_battery"){
+    if(Tnow-Tblink>100){
+      Tblink = Tnow;
+      if (ledState == LOW) { ledState = HIGH; }
+      else { ledState = LOW; }
+    }
+  }
+  if(state=="charging"){
+    if(Tnow-Tblink>1000){
+      Tblink = Tnow;
+      if (ledState == LOW) { ledState = HIGH; }
+      else { ledState = LOW; }
+    }
+  }
+  digitalWrite(LED_PIN, ledState);
+
+  // LED PCB
+  if(state=="detecting"){
+    digitalWrite(LED_PCB, HIGH);
+  }else{
+    digitalWrite(LED_PCB, LOW);
+  }
+
+
+
 
 }
