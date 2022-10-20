@@ -68,6 +68,8 @@ void setup() {
     output = new AudioOutputI2S();
     output->SetPinout(26,25,22); // BCLK, WCLK, DOUT
     decoder = new AudioGeneratorWAV();
+    output->SetGain(1);//0-----1 (50% = 0.5)
+    playAudio("Bonjour");
     // LEDS & INFO
     pinMode(LED_PCB, OUTPUT);
     pinMode(LED_PIN, OUTPUT);
@@ -86,7 +88,7 @@ void updateRFID(){
       Serial.print("RFID card number: ");
       Serial.println(RFID.cardNumber());
       Tdetect = millis();
-      playAudio(RFID.cardNumber());
+      playAudio(String(RFID.cardNumber()));
   }
 }
 
@@ -99,12 +101,12 @@ void updateAudio(){
   }
 }
 
-void playAudio(unsigned long cardNumber){
-  Serial.println("/"+String(cardNumber)+".wav");
+void playAudio(String cardNumber){
+  Serial.println("Play /"+cardNumber+".wav");
 
   decoder->stop();
   source->close();
-  source->open(("/"+String(cardNumber)+".wav").c_str());
+  source->open(("/"+cardNumber+".wav").c_str());
   decoder->begin(source, output);
 
 }
