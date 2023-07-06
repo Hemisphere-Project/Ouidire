@@ -1,10 +1,12 @@
-// SeeedRFID
-#include <SoftwareSerial.h>
-#include <SeeedRFID.h>
 // SD
 #include <Arduino.h>
 #include <SD.h>
+// SeeedRFID
+// https://github.com/Seeed-Studio/RFID_Library
+#include <SoftwareSerial.h>
+#include <SeeedRFID.h>
 // ESP8266Audio
+// https://github.com/earlephilhower/ESP8266Audio
 #include "AudioFileSourceSD.h"
 #include "AudioGeneratorWAV.h"
 #include "AudioOutputI2S.h"
